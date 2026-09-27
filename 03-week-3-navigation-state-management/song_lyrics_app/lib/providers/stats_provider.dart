@@ -11,6 +11,18 @@ class StatsNotifier extends AsyncNotifier<List<String>> {
     state = await AsyncValue.guard(() => _fetchStats());
   }
 
+  void reorder(int oldIndex, int newIndex) {
+    if (state is AsyncData) {
+      final currentList = List<String>.from(state.value!);
+      if (oldIndex < newIndex) {
+        newIndex -= 1;
+      }
+      final item = currentList.removeAt(oldIndex);
+      currentList.insert(newIndex, item);
+      state = AsyncData(currentList);
+    }
+  }
+
   Future<List<String>> _fetchStats() async {
     // Simulasi delay jaringan (2 detik)
     await Future.delayed(const Duration(seconds: 2));

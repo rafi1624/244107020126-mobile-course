@@ -6,38 +6,78 @@ class LyricsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bohemian Rhapsody - Queen'),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 700;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Expanded(
-                        flex: 1,
-                        child: AlbumCoverCard(),
+      body: Scrollbar(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              title: const Text('Bohemian Rhapsody - Queen'),
+              floating: true,
+              pinned: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Opsi Lirik', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
+                            ListTile(
+                              leading: const Icon(Icons.share),
+                              title: const Text('Bagikan'),
+                              onTap: () => Navigator.pop(context),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.favorite_border),
+                              title: const Text('Simpan ke Favorit'),
+                              onTap: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
                       ),
-                      SizedBox(width: 24),
-                      Expanded(
-                        flex: 2,
-                        child: FullLyricsCard(),
-                      ),
-                    ],
-                  )
-                : Column(
-                    children: const [
-                      AlbumCoverCard(),
-                      SizedBox(height: 24),
-                      FullLyricsCard(),
-                    ],
-                  ),
-          );
-        },
+                    );
+                  },
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 700;
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Expanded(
+                                flex: 1,
+                                child: AlbumCoverCard(),
+                              ),
+                              SizedBox(width: 24),
+                              Expanded(
+                                flex: 2,
+                                child: FullLyricsCard(),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            children: const [
+                              AlbumCoverCard(),
+                              SizedBox(height: 24),
+                              FullLyricsCard(),
+                            ],
+                          ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -54,14 +94,41 @@ class AlbumCoverCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Image.network(
-            'https://upload.wikimedia.org/wikipedia/en/9/9f/Bohemian_Rhapsody.png',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            errorBuilder: (context, error, stackTrace) => Container(
-              height: 300,
-              color: Colors.grey.shade300,
-              child: const Icon(Icons.music_note, size: 80, color: Colors.grey),
+          SizedBox(
+            height: 300,
+            child: PageView(
+              children: [
+                Image.network(
+                  'https://upload.wikimedia.org/wikipedia/en/9/9f/Bohemian_Rhapsody.png',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 300,
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.music_note, size: 80, color: Colors.grey),
+                  ),
+                ),
+                Image.network(
+                  'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Queen_Bohemian_Rhapsody.jpg/300px-Queen_Bohemian_Rhapsody.jpg',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 300,
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.image, size: 80, color: Colors.grey),
+                  ),
+                ),
+                Image.network(
+                  'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Queen_1976.jpg/800px-Queen_1976.jpg',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 300,
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.group, size: 80, color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -81,6 +148,38 @@ class AlbumCoverCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ActionChip(
+                      label: const Text('Rock'),
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Genre Rock dipilih!')),
+                      ),
+                    ),
+                    ActionChip(
+                      label: const Text('Progressive Rock'),
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Genre Progressive Rock dipilih!')),
+                      ),
+                    ),
+                    ActionChip(
+                      label: const Text('1975'),
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Tahun 1975 dipilih!')),
+                      ),
+                    ),
+                    ActionChip(
+                      label: const Text('Classic'),
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Genre Classic dipilih!')),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
