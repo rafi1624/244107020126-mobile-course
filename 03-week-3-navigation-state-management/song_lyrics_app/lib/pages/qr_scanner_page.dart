@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:qr_scanner_overlay/qr_scanner_overlay.dart';
+import 'package:geolocator/geolocator.dart';
 
 class QRScannerPage extends StatefulWidget {
   const QRScannerPage({super.key});
@@ -45,6 +46,39 @@ class _QRScannerPageState extends State<QRScannerPage> {
     super.dispose();
   }
 
+  Future<void> _getLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw 'Service lokasi (GPS) sedang mati.';
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw 'Izin akses lokasi ditolak.';
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw 'Izin akses lokasi ditolak permanen.';
+      } 
+
+      Position position = await Geolocator.getCurrentPosition();
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lokasi Anda: ${position.latitude}, ${position.longitude}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,6 +106,10 @@ class _QRScannerPageState extends State<QRScannerPage> {
                 ],
               )
             : const CircularProgressIndicator(),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _getLocation,
+        child: const Icon(Icons.location_on),
       ),
     );
   }

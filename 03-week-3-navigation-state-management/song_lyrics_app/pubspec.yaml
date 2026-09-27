@@ -38,6 +38,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   camera: ^0.12.1
   qr_scanner_overlay: ^0.0.2
+  geolocator: ^14.1.1
 
 dev_dependencies:
   flutter_test:
