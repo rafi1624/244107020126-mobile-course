@@ -66,11 +66,34 @@ class SongLyricsApp extends ConsumerWidget {
       title: 'Song Lyrics & Navigation',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF7C3AED),
+      ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: Colors.deepPurple,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF8B5CF6),
+          brightness: Brightness.dark,
+          surface: const Color(0xFF16192B),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF0D0F1D),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1A1E36),
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.08),
+              width: 1,
+            ),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0D0F1D),
+          elevation: 0,
+        ),
       ),
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
     );

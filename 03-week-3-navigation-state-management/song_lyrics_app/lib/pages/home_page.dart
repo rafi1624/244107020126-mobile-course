@@ -43,13 +43,17 @@ class HomePage extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         Tooltip(
-                          message: 'Lihat lirik Bohemian Rhapsody',
-                          child: CircleAvatar(radius: 30, child: Icon(Icons.music_note, size: 30)),
+                          message: 'Lihat lirik Jemari Mengubah Dunia',
+                          child: CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Color(0xFF8B5CF6),
+                            child: Icon(Icons.music_note, size: 30, color: Colors.white),
+                          ),
                         ),
                         SizedBox(height: 16),
                         Text('Lirik Lagu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 8),
-                        Text('Bohemian Rhapsody', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                        Text('Jemari Mengubah Dunia', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
