@@ -1,30 +1,42 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:networking_rest_api/data/models/post.dart';
+import 'package:networking_rest_api/data/providers.dart';
 import 'package:networking_rest_api/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App smoke test - verifies initial render', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          postListProvider.overrideWith(
+            () => _MockPostListNotifier(),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Initial pump untuk memproses future di AsyncNotifier
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verifikasi bahwa judul 'Posts API' muncul di AppBar
+    expect(find.text('Posts API'), findsOneWidget);
+    // Verifikasi bahwa data mock tampil setelah data resolved
+    expect(find.text('Mock Post Title'), findsOneWidget);
   });
+}
+
+class _MockPostListNotifier extends PostListNotifier {
+  @override
+  Future<List<Post>> build() async {
+    return const [
+      Post(
+        userId: 1,
+        id: 1,
+        title: 'Mock Post Title',
+        body: 'Mock Post Body',
+      ),
+    ];
+  }
 }
