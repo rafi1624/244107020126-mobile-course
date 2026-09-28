@@ -29,12 +29,6 @@ class AsyncStatePage extends StatefulWidget {
 }
 
 class _AsyncStatePageState extends State<AsyncStatePage> {
-  // Setup for FutureBuilder
-  Future<String> _fetchData() async {
-    await Future.delayed(const Duration(seconds: 2));
-    return 'Data berhasil dimuat dari Future!';
-  }
-
   // Setup for StreamBuilder
   Stream<int> _generateStream() async* {
     for (int i = 1; i <= 10; i++) {
@@ -67,28 +61,7 @@ class _AsyncStatePageState extends State<AsyncStatePage> {
               const Text('Halaman ini adalah StatefulWidget, dan beberapa komponen di bawahnya adalah StatelessWidget.'),
               const Divider(height: 32),
 
-              const Text('3. FutureBuilder', style: TextStyle(fontWeight: FontWeight.bold)),
-              FutureBuilder<String>(
-                future: _fetchData(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  } else {
-                    return Card(
-                      color: Colors.blue.shade100,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(snapshot.data ?? 'Tidak ada data', style: const TextStyle(color: Colors.black)),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const Divider(height: 32),
-
-              const Text('4. StreamBuilder (Hitung 1-10)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('3. StreamBuilder (Hitung 1-10)', style: TextStyle(fontWeight: FontWeight.bold)),
               StreamBuilder<int>(
                 stream: _generateStream(),
                 builder: (context, snapshot) {
@@ -108,11 +81,11 @@ class _AsyncStatePageState extends State<AsyncStatePage> {
               ),
               const Divider(height: 32),
 
-              const Text('5. InheritedWidget', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('4. InheritedWidget', style: TextStyle(fontWeight: FontWeight.bold)),
               const InheritedWidgetDemo(), // This is a StatelessWidget
               const Divider(height: 32),
 
-              const Text('6. ValueListenableBuilder', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('5. ValueListenableBuilder', style: TextStyle(fontWeight: FontWeight.bold)),
               ValueListenableBuilder<int>(
                 valueListenable: _counter,
                 builder: (context, value, child) {
