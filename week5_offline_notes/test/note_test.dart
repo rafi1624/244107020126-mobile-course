@@ -68,7 +68,7 @@ void main() {
 
     test('notesProvider error', () async {
       final container = ProviderContainer(
-        retry: (_, __) => null,
+        retry: (_, _) => null,
         overrides: [
           noteRepositoryProvider.overrideWithValue(
             FakeNoteRepository(throwError: true),
