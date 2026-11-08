@@ -1,0 +1,5 @@
+# Keamanan: Jangan pernah upload google-services.json ke GitHub
+**/google-services.json
+
+# Folder duplikat/template lokal
+06-week-6-authentication-security-fcm copy/
