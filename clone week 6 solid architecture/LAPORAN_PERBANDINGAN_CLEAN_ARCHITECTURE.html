@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Perbandingan Clean Architecture - Week 6 vs Clone</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #eff6ff;
+      --secondary: #0d9488;
+      --text: #1f2937;
+      --text-muted: #4b5563;
+      --bg: #f9fafb;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 48px;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    h1 {
+      color: var(--primary);
+      font-size: 26px;
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 12px;
+      margin-top: 0;
+    }
+    h2 {
+      color: var(--primary);
+      font-size: 20px;
+      margin-top: 36px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    h3 {
+      color: #374151;
+      font-size: 16px;
+      margin-top: 24px;
+    }
+    p, li {
+      color: var(--text);
+      font-size: 14.5px;
+    }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background-color: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #b91c1c;
+    }
+    pre {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13.5px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-danger {
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+    .badge-success {
+      background-color: var(--success-bg);
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+    .card-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .card-danger {
+      background-color: var(--danger-bg);
+      border-color: #fca5a5;
+    }
+    .card-success {
+      background-color: var(--success-bg);
+      border-color: #86efac;
+    }
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 24px;
+    }
+    .print-btn:hover {
+      background: #1d4ed8;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        padding: 0;
+      }
+      .print-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF (Ctrl + P)</button>
+
+    <h1>Laporan Perbandingan Arsitektur: Week 6 Awal (Folder JS) vs Clean Architecture (Folder Clone)</h1>
+
+    <h2>1. Ringkasan Eksekutif</h2>
+    <p>Laporan ini menyajikan analisis komparatif menyeluruh antara implementasi awal <strong>Week 6 (Authentication, Security & FCM)</strong> yang berada di folder <code>JS</code> dengan implementasi <strong>Clean Architecture</strong> yang telah diterapkan pada folder <code>clone/06-week-6-authentication-security-fcm-clone</code>.</p>
+    <p>Refaktorisasi ini didasarkan pada materi kuliah mengenai <strong>Clean Architecture</strong> dan <strong>Prinsip SOLID dalam Flutter</strong>, dengan aturan kunci:</p>
+    <ul>
+      <li><strong>Dependency Rule</strong>: Dependensi hanya mengarah ke dalam (<strong>Presentation &rarr; Domain &larr; Data</strong>).</li>
+      <li><strong>Domain Purity</strong>: Domain murni Dart tanpa dependensi ke Flutter, Dio, SQLite, atau Firebase.</li>
+      <li><strong>Separation of Concerns</strong>: Widget UI tidak boleh mengimpor atau memanggil HTTP client / local storage secara langsung.</li>
+    </ul>
+
+    <h2>2. Perbandingan Struktur Folder dan Berkas</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <h3>❌ Week 6 Awal (Folder <code>JS</code>)</h3>
+        <pre><code>lib/
+├── data/
+│   ├── api_client.dart
+│   ├── auth_provider.dart
+│   ├── auth_repository.dart
+│   ├── notification_provider.dart
+│   └── token_store.dart
+├── messaging/
+│   └── push_service.dart
+├── pages/
+│   ├── announcement_page.dart
+│   ├── home_page.dart
+│   └── login_page.dart
+└── main.dart</code></pre>
+      </div>
+      <div>
+        <h3>✅ Clean Architecture (Folder <code>clone</code>)</h3>
+        <pre><code>lib/
+├── domain/                  (Pure Dart)
+│   ├── entities/
+│   ├── failures/
+│   ├── repositories/        (Kontrak Interface)
+│   └── usecases/            (Business Logic)
+├── data/                    (Implementasi I/O)
+│   ├── datasources/
+│   │   ├── local/
+│   │   └── remote/
+│   ├── models/
+│   ├── network/
+│   └── repositories/        (Implementasi Kontrak)
+├── presentation/            (UI & State)
+│   ├── pages/
+│   └── providers/
+├── messaging/
+└── main.dart</code></pre>
+      </div>
+    </div>
+
+    <h2>3. Analisis Pelanggaran pada Week 6 Awal (Folder JS)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Gejala / Pelanggaran</th>
+          <th>Lokasi Berkas di JS</th>
+          <th>Dampak Negatif</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><span class="badge badge-danger">Pelanggaran Kritis</span><br>Presentation mengenal Dio & JSON mentah</td>
+          <td><code>lib/pages/home_page.dart</code> (baris 67-75)</td>
+          <td>Widget UI memanggil <code>final dio = ref.read(apiClientProvider); await dio.get('/me')</code> langsung. Jika REST API berganti protokol atau format, UI ikut rusak.</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td>Ketiadaan Layer Domain</td>
+          <td>Seluruh proyek di <code>JS</code></td>
+          <td>Tidak ada entitas bisnis murni atau antarmuka. Logika bisnis melekat mati pada pustaka pihak ketiga.</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td>Pelanggaran Arah Dependensi</td>
+          <td><code>lib/data/auth_provider.dart</code> (baris 6-8)</td>
+          <td>Data layer mengimpor Presentation layer (<code>import '../pages/home_page.dart'</code>). Melanggar kaidah dependency rule.</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>Repository tanpa Abstraksi (DIP)</td>
+          <td><code>lib/data/auth_repository.dart</code></td>
+          <td>Kelas konkrit langsung terikat ke pustaka Dio tanpa antarmuka/interface pemisah.</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td>Widget God-Object (SRP)</td>
+          <td><code>lib/pages/home_page.dart</code> (&gt;900 baris)</td>
+          <td>Satu berkas widget mengurus rendering, networking HTTP, dialog rendering, local notification trigger, dan parsing data.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. Perbandingan Kode Konkrit (Before vs After)</h2>
+
+    <h3>A. Pemanggilan Endpoint Terlindungi (/me) di Dashboard</h3>
+    <div class="card-box card-danger">
+      <strong>❌ Sebelum (Folder JS - Widget memanggil Dio langsung):</strong>
+      <pre><code>// lib/pages/home_page.dart
+Future&lt;void&gt; _testProtectedApi() async {
+  setState(() =&gt; _isTestingApi = true);
+  try {
+    final dio = ref.read(apiClientProvider); // <-- Panggil Dio langsung dari Widget
+    final response = await dio.get('/me');   // <-- HTTP mentah di dalam UI!
+    setState(() {
+      _apiTestResult = 'HTTP ${response.statusCode}: ${response.data}';
+      _isTestingApi = false;
+    });
+  } catch (e) {
+    setState(() =&gt; _apiTestResult = 'Gagal: $e');
+  }
+}</code></pre>
+    </div>
+
+    <div class="card-box card-success">
+      <strong>✅ Sesudah (Folder Clone - Widget memanggil Domain UseCase):</strong>
+      <pre><code>// lib/presentation/pages/home_page.dart
+Future&lt;void&gt; _testProtectedApi() async {
+  setState(() =&gt; _isTestingApi = true);
+  try {
+    // Memanggil UseCase domain: Bebas dari import dio, http, atau json parsing
+    final UserProfile profile = await ref.read(getProfileUseCaseProvider).execute();
+    setState(() {
+      _apiTestResult = 'Profil Diterima dari UseCase:\n'
+          'Nama: ${profile.name}\nEmail: ${profile.email}';
+      _isTestingApi = false;
+    });
+  } catch (e) {
+    setState(() =&gt; _apiTestResult = 'Gagal: $e');
+  }
+}</code></pre>
+    </div>
+
+    <h3>B. Abstraksi Repository (Dependency Inversion)</h3>
+    <div class="card-box card-success">
+      <strong>✅ Sesudah (Folder Clone - Kontrak Interface di Domain Layer):</strong>
+      <pre><code>// lib/domain/repositories/auth_repository.dart (Pure Dart)
+abstract class AuthRepository {
+  String get baseUrl;
+  set baseUrl(String url);
+  Future&lt;AuthSession&gt; login({required String email, required String password});
+  Future&lt;String&gt; refresh(String refreshToken);
+  Future&lt;void&gt; logout();
+  Future&lt;UserProfile&gt; fetchProfile(String accessToken);
+}</code></pre>
+    </div>
+
+    <h2>5. Evaluasi Berdasarkan 5 Prinsip SOLID</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Prinsip</th>
+          <th>Week 6 Awal di JS</th>
+          <th>Hasil Refactoring di Clone</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Single Responsibility (SRP)</strong></td>
+          <td><code>home_page.dart</code> (&gt;900 baris) mencampur HTTP, state notifikasi, dan UI widget.</td>
+          <td>UI hanya menggambar tampilan; UseCase mengurus alur bisnis; DataSource mengurus I/O.</td>
+        </tr>
+        <tr>
+          <td><strong>Open/Closed (OCP)</strong></td>
+          <td>Menambah tipe storage atau client baru mengharuskan mengubah seluruh widget.</td>
+          <td>Dapat menambah DataSource baru tanpa menyentuh Domain UseCase atau Widget.</td>
+        </tr>
+        <tr>
+          <td><strong>Liskov Substitution (LSP)</strong></td>
+          <td>Sulit membuat repository tiruan karena tidak ada kontrak interface seragam.</td>
+          <td>Semua implementasi dan fake repository mematuhi kontrak antarmuka Domain yang sama.</td>
+        </tr>
+        <tr>
+          <td><strong>Interface Segregation (ISP)</strong></td>
+          <td>Satu kelas raksasa menampung semua fungsi token dan HTTP tanpa kontrak terpisah.</td>
+          <td>Kontrak dipisah secara modular: <code>AuthRepository</code> dan <code>TokenRepository</code> mandiri.</td>
+        </tr>
+        <tr>
+          <td><strong>Dependency Inversion (DIP)</strong></td>
+          <td>Widget dan Notifier bergantung langsung pada implementasi konkrit (Dio & SecureStorage).</td>
+          <td>Presentation hanya bergantung pada abstraksi Use Case dan Repository Interface.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6. Integritas Folder JS</h2>
+    <p>Folder <code>JS</code> (<code>c:\Kuliah\Semester 5\Pemograman Mobile\JS</code>) dipertahankan <strong>100% utuh tanpa diubah sedikit pun</strong> sebagai berkas acuan awal.</p>
+  </div>
+</body>
+</html>
+
