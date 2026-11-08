@@ -7,7 +7,6 @@ import '../../data/network/api_client.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/token_repository_impl.dart';
 import '../../domain/entities/campus_notification.dart';
-import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/token_repository.dart';
 import '../../domain/usecases/check_auth_status_usecase.dart';

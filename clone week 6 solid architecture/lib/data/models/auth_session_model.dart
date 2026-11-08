@@ -1,7 +1,7 @@
 import '../../domain/entities/auth_session.dart';
 
-/// Data Model: AuthSessionModel
-/// Bertanggung jawab atas serialisasi / deserialisasi JSON dari respon API
+/// Data Model: AuthSessionModel (Clean Architecture - Data Layer)
+/// Bertanggung jawab atas serialisasi / deserialisasi JSON respon REST API
 class AuthSessionModel extends AuthSession {
   const AuthSessionModel({
     required super.access,
@@ -20,15 +20,24 @@ class AuthSessionModel extends AuthSession {
 
     final user = payload['user'] as Map<String, dynamic>?;
 
-    final accessToken = payload['access_token'] as String? ?? '';
-    final refreshToken = payload['refresh_token'] as String? ?? '';
+    final accessToken = payload['idToken'] as String? ??
+        payload['access_token'] as String? ??
+        '';
+    final refreshToken = payload['refreshToken'] as String? ??
+        payload['refresh_token'] as String? ??
+        '';
+    final userEmail = payload['email'] as String? ??
+        user?['email'] as String? ??
+        fallbackEmail;
+    final userName = payload['displayName'] as String? ??
+        user?['name'] as String? ??
+        userEmail?.split('@').first;
 
     return AuthSessionModel(
       access: accessToken,
       refresh: refreshToken,
-      userName: user?['name'] as String?,
-      userEmail: user?['email'] as String? ?? fallbackEmail,
+      userName: userName,
+      userEmail: userEmail,
     );
   }
 }
-

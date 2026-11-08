@@ -6,11 +6,13 @@ Dio buildApiClient(TokenStore store, AuthRepository auth) {
   final dio = Dio(
     BaseOptions(
       baseUrl: auth.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Android-Package': 'com.example.authentication_security_fcm',
+        'X-Android-Cert': '8A426CC9E88D175E1018BD98096A080BAEE839EE',
       },
     ),
   );

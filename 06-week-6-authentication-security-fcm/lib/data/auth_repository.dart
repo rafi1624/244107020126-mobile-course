@@ -1,6 +1,4 @@
-import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthSession {
   const AuthSession({
@@ -17,7 +15,7 @@ class AuthSession {
 }
 
 class AuthRepository {
-  AuthRepository({Dio? dio, String? initialBaseUrl})
+  AuthRepository({Dio? dio, String? initialApiKey})
       : _dio = dio ??
             Dio(
               BaseOptions(
@@ -26,70 +24,98 @@ class AuthRepository {
                 headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
+                  'X-Android-Package': 'com.example.authentication_security_fcm',
+                  'X-Android-Cert': '8A426CC9E88D175E1018BD98096A080BAEE839EE',
                 },
               ),
             ),
-        _customBaseUrl = initialBaseUrl;
+        _apiKey = initialApiKey ?? 'AIzaSyAmc35C1Gm8yfCyHR9ABSrTb_1Yg9KhV0I';
 
   final Dio _dio;
+  String _apiKey;
   String? _customBaseUrl;
 
-  String get defaultBaseUrl {
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
-  }
+  String get apiKey => _apiKey;
+  set apiKey(String key) => _apiKey = key.trim();
 
+  String get defaultBaseUrl => 'https://identitytoolkit.googleapis.com/v1';
   String get baseUrl => _customBaseUrl ?? defaultBaseUrl;
 
   set baseUrl(String url) {
     _customBaseUrl = url.trim().replaceAll(RegExp(r'/$'), '');
   }
 
-  /// Login ke REST API backend (Laravel / auth endpoint)
+  /// Login melalui REST API Cloud menggunakan Dio (HTTP POST)
   Future<AuthSession> login({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await _dio.post(
-        '$baseUrl/login',
-        data: {
-          'email': email.trim(),
-          'password': password,
-        },
-      );
+      Response response;
+      try {
+        // 1. Kirim HTTP POST ke endpoint SignIn REST API
+        response = await _dio.post(
+          'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$_apiKey',
+          data: {
+            'email': email.trim(),
+            'password': password,
+            'returnSecureToken': true,
+          },
+        );
+      } on DioException catch (e) {
+        final err = e.response?.data;
+        final errMsg =
+            (err is Map && err['error'] != null) ? err['error']['message'] : null;
+
+        // Jika user belum ada di REST API, otomatis daftarkan via endpoint signUp REST API
+        if (errMsg == 'EMAIL_NOT_FOUND' || errMsg == 'INVALID_LOGIN_CREDENTIALS') {
+          try {
+            response = await _dio.post(
+              'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$_apiKey',
+              data: {
+                'email': email.trim(),
+                'password': password,
+                'returnSecureToken': true,
+              },
+            );
+          } catch (_) {
+            throw Exception(_handleDioError(e));
+          }
+        } else {
+          throw Exception(_handleDioError(e));
+        }
+      }
 
       final data = response.data;
-      if (data is Map<String, dynamic> && data['data'] != null) {
-        final payload = data['data'] as Map<String, dynamic>;
-        final user = payload['user'] as Map<String, dynamic>?;
+      if (data is Map<String, dynamic>) {
+        final idToken = data['idToken'] as String? ?? '';
+        final refreshToken = data['refreshToken'] as String? ?? '';
+        final userEmail = data['email'] as String? ?? email;
+        final displayName =
+            data['displayName'] as String? ?? userEmail.split('@').first;
 
-        final accessToken = payload['access_token'] as String? ?? '';
-        final refreshToken = payload['refresh_token'] as String? ?? '';
-
-        if (accessToken.isEmpty) {
-          throw Exception('Token akses tidak ditemukan dalam respon API.');
+        if (idToken.isEmpty) {
+          throw Exception('Token akses tidak ditemukan dalam respon REST API.');
         }
 
         return AuthSession(
-          access: accessToken,
+          access: idToken,
           refresh: refreshToken,
-          userName: user?['name'] as String?,
-          userEmail: user?['email'] as String? ?? email,
+          userName: displayName,
+          userEmail: userEmail,
         );
       }
 
-      throw Exception('Format respon login tidak sesuai spesifikasi.');
+      throw Exception('Format respon REST API tidak sesuai spesifikasi.');
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     } catch (e) {
-      rethrow;
+      if (e is Exception) rethrow;
+      throw Exception(e.toString());
     }
   }
 
-  /// Memperbarui access token menggunakan refresh token
+  /// Memperbarui token melalui SecureToken REST API menggunakan Dio
   Future<String> refresh(String refreshToken) async {
     if (refreshToken.isEmpty) {
       throw Exception('Refresh token hilang atau tidak valid.');
@@ -97,17 +123,19 @@ class AuthRepository {
 
     try {
       final response = await _dio.post(
-        '$baseUrl/refresh',
-        data: {'refresh_token': refreshToken},
+        'https://securetoken.googleapis.com/v1/token?key=$_apiKey',
+        data: {
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
       );
 
       final data = response.data;
-      if (data is Map<String, dynamic> && data['data'] != null) {
-        final payload = data['data'] as Map<String, dynamic>;
-        final renewedAccess = payload['access_token'] as String?;
-        if (renewedAccess != null && renewedAccess.isNotEmpty) {
-          return renewedAccess;
-        }
+      if (data is Map<String, dynamic> && data['id_token'] != null) {
+        return data['id_token'] as String;
       }
       return 'token_access_renewed_${DateTime.now().millisecondsSinceEpoch}';
     } on DioException catch (e) {
@@ -115,28 +143,39 @@ class AuthRepository {
     }
   }
 
-  /// Logout dari backend API
+  /// Logout dari REST API
   Future<void> logout() async {
-    try {
-      await _dio.post('$baseUrl/logout');
-    } catch (_) {
-      // Abaikan error pada logout jarak jauh
-    }
+    // REST API bersifat stateless; sesi token dibersihkan di penyimpanan lokal
   }
 
-  /// Mengambil profil akun pengguna saat ini menggunakan Bearer token
+  /// Mengambil profil akun pengguna via REST API (accounts:lookup) dengan Bearer token
   Future<Map<String, dynamic>> fetchProfile(String accessToken) async {
     try {
-      final response = await _dio.get(
-        '$baseUrl/me',
-        options: Options(
-          headers: {'Authorization': 'Bearer $accessToken'},
-        ),
+      final response = await _dio.post(
+        'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=$_apiKey',
+        data: {
+          'idToken': accessToken,
+        },
       );
-      if (response.data is Map<String, dynamic>) {
-        return (response.data['data'] as Map<String, dynamic>?) ?? {};
+
+      final data = response.data;
+      if (data is Map<String, dynamic> &&
+          data['users'] is List &&
+          (data['users'] as List).isNotEmpty) {
+        final user = (data['users'] as List).first as Map<String, dynamic>;
+        return {
+          'uid': user['localId'],
+          'email': user['email'],
+          'nama': user['displayName'] ??
+              (user['email'] as String?)?.split('@').first ??
+              'Mahasiswa',
+          'emailTerverifikasi': user['emailVerified'] ?? false,
+          'waktuDibuat': user['createdAt'],
+          'terakhirMasuk': user['lastLoginAt'],
+          'jalurAPI': 'REST API HTTP POST (via Dio Client)',
+        };
       }
-      return {};
+      return {'status': 'Data profil tidak ditemukan'};
     } on DioException catch (e) {
       throw Exception(_handleDioError(e));
     }
@@ -144,29 +183,41 @@ class AuthRepository {
 
   String _handleDioError(DioException e) {
     if (e.response != null) {
-      final statusCode = e.response?.statusCode;
-      final body = e.response?.data;
-      if (body is Map<String, dynamic> && body['message'] != null) {
-        return body['message'].toString();
+      final data = e.response?.data;
+      if (data is Map<String, dynamic> && data['error'] != null) {
+        final errObj = data['error'];
+        final msg = errObj is Map ? errObj['message'] : errObj.toString();
+        switch (msg) {
+          case 'CONFIGURATION_NOT_FOUND':
+            return 'Layanan Authentication belum diaktifkan di Firebase Console! Buka Firebase Console > Build > Authentication > klik "Get Started".';
+          case 'EMAIL_NOT_FOUND':
+          case 'INVALID_PASSWORD':
+          case 'INVALID_LOGIN_CREDENTIALS':
+            return 'Email atau kata sandi tidak valid.';
+          case 'USER_DISABLED':
+            return 'Akun pengguna ini telah dinonaktifkan.';
+          case 'WEAK_PASSWORD : Password should be at least 6 characters':
+            return 'Kata sandi minimal 6 karakter.';
+          case 'EMAIL_EXISTS':
+            return 'Email ini sudah terdaftar.';
+          case 'TOO_MANY_ATTEMPTS_TRY_LATER':
+            return 'Terlalu banyak percobaan gagal. Silakan coba lagi nanti.';
+          default:
+            return 'Error REST API ($msg)';
+        }
       }
-      if (statusCode == 401) {
-        return 'Email atau kata sandi tidak valid.';
-      }
-      if (statusCode == 422) {
-        return 'Validasi gagal: format email atau sandi tidak sesuai.';
-      }
-      return 'Gagal memproses request (HTTP $statusCode).';
+      return 'Gagal memproses request (HTTP ${e.response?.statusCode}).';
     }
 
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Waktu koneksi habis (Timeout ke $baseUrl). Jika menggunakan HP fisik via USB, ubah URL ke http://127.0.0.1:8000/api.';
+        return 'Waktu koneksi habis (Timeout ke REST API). Periksa koneksi internet Anda.';
       case DioExceptionType.connectionError:
-        return 'Tidak dapat terhubung ke API di $baseUrl. Pastikan backend Laravel sedang berjalan (php artisan serve).';
+        return 'Tidak dapat terhubung ke REST API Cloud. Pastikan HP terhubung ke internet.';
       default:
-        return 'Terjadi gangguan jaringan: ${e.message ?? 'Unknown error'}';
+        return 'Gangguan jaringan: ${e.message ?? 'Unknown error'}';
     }
   }
 }

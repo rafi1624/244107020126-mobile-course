@@ -64,11 +64,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     try {
-      final dio = ref.read(apiClientProvider);
-      final response = await dio.get('/me');
+      final auth = ref.read(authRepositoryProvider);
+      final store = ref.read(tokenStoreProvider);
+      final access = await store.readAccess() ?? '';
+      final profile = await auth.fetchProfile(access);
       if (mounted) {
         setState(() {
-          _apiTestResult = 'HTTP ${response.statusCode}: ${response.data}';
+          _apiTestResult = 'Profil Akun Firebase Terverifikasi:\n$profile';
           _isTestingApi = false;
         });
       }
@@ -771,7 +773,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         Icon(Icons.network_check, color: Colors.teal),
                         SizedBox(width: 8),
                         Text(
-                          'Uji Interceptor Dio & Bearer Auth',
+                          'Uji Profil & Bearer Token Firebase',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -781,7 +783,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Panggil endpoint terlindungi /api/me menggunakan buildApiClient. Header "Authorization: Bearer <access_token>" akan dipasang secara otomatis.',
+                      'Menguji sesi autentikasi pengguna langsung melalui Firebase Authentication SDK.',
                       style: TextStyle(fontSize: 12, color: Colors.black87),
                     ),
                     const SizedBox(height: 12),
@@ -794,7 +796,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.send_rounded),
-                      label: const Text('Kirim GET /api/me'),
+                      label: const Text('Verifikasi Profil Firebase'),
                     ),
                     if (_apiTestResult != null) ...[
                       const SizedBox(height: 12),

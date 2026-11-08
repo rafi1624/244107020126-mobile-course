@@ -1,6 +1,7 @@
 import 'package:authentication_security_fcm/data/datasources/remote/auth_remote_datasource.dart';
 import 'package:authentication_security_fcm/data/repositories/auth_repository_impl.dart';
 import 'package:authentication_security_fcm/domain/entities/auth_session.dart';
+import 'package:authentication_security_fcm/domain/entities/user_profile.dart';
 import 'package:authentication_security_fcm/domain/repositories/auth_repository.dart';
 import 'package:authentication_security_fcm/domain/usecases/login_usecase.dart';
 import 'package:authentication_security_fcm/domain/repositories/token_repository.dart';
@@ -43,7 +44,7 @@ class MockTokenRepository implements TokenRepository {
 }
 
 class FakeAuthRepository implements AuthRepository {
-  String _baseUrl = 'http://127.0.0.1:8000/api';
+  String _baseUrl = 'https://identitytoolkit.googleapis.com/v1';
 
   @override
   String get baseUrl => _baseUrl;
@@ -68,8 +69,12 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> logout() async {}
 
   @override
-  Future<dynamic> fetchProfile(String accessToken) async {
-    throw UnimplementedError();
+  Future<UserProfile> fetchProfile(String accessToken) async {
+    return const UserProfile(
+      id: 'test_uid',
+      name: 'Test User',
+      email: 'test@example.com',
+    );
   }
 }
 
@@ -82,8 +87,8 @@ void main() {
       expect(repo.baseUrl, isNotEmpty);
       expect(repo.baseUrl.startsWith('http'), isTrue);
 
-      repo.baseUrl = 'http://my-campus-api.com/api/';
-      expect(repo.baseUrl, equals('http://my-campus-api.com/api'));
+      repo.baseUrl = 'https://identitytoolkit.googleapis.com/v1/custom/';
+      expect(repo.baseUrl, equals('https://identitytoolkit.googleapis.com/v1/custom'));
     });
 
     test('Domain Entity AuthSession contains expected values', () {
@@ -117,7 +122,7 @@ void main() {
       expect(result.access, equals('fake_access_123'));
       expect(mockTokenRepo.access, equals('fake_access_123'));
       expect(mockTokenRepo.refresh, equals('fake_refresh_456'));
-      expect(mockTokenRepo.userEmail, equals('test@example.com'));
+      expect(mockTokenRepo.email, equals('test@example.com'));
     });
   });
 }

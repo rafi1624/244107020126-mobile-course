@@ -1,6 +1,4 @@
-import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../../domain/failures/failure.dart';
 import '../../models/auth_session_model.dart';
@@ -23,7 +21,7 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  AuthRemoteDataSourceImpl({Dio? dio, String? initialBaseUrl})
+  AuthRemoteDataSourceImpl({Dio? dio, String? initialApiKey})
       : _dio = dio ??
             Dio(
               BaseOptions(
@@ -32,20 +30,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 headers: {
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
+                  'X-Android-Package': 'com.example.authentication_security_fcm',
+                  'X-Android-Cert': '8A426CC9E88D175E1018BD98096A080BAEE839EE',
                 },
               ),
             ),
-        _customBaseUrl = initialBaseUrl;
+        _apiKey = initialApiKey ?? 'AIzaSyAmc35C1Gm8yfCyHR9ABSrTb_1Yg9KhV0I';
 
   final Dio _dio;
+  String _apiKey;
   String? _customBaseUrl;
 
-  String get defaultBaseUrl {
-    if (!kIsWeb && Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
-  }
+  String get defaultBaseUrl => 'https://identitytoolkit.googleapis.com/v1';
 
   @override
   String get baseUrl => _customBaseUrl ?? defaultBaseUrl;
@@ -61,23 +57,50 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      final response = await _dio.post(
-        '$baseUrl/login',
-        data: {
-          'email': email.trim(),
-          'password': password,
-        },
-      );
+      Response response;
+      try {
+        // 1. Eksekusi HTTP POST ke endpoint SignIn REST API via Dio
+        response = await _dio.post(
+          'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$_apiKey',
+          data: {
+            'email': email.trim(),
+            'password': password,
+            'returnSecureToken': true,
+          },
+        );
+      } on DioException catch (e) {
+        final err = e.response?.data;
+        final errMsg =
+            (err is Map && err['error'] != null) ? err['error']['message'] : null;
+
+        // Jika akun belum ada di REST API, otomatis daftarkan via signUp endpoint
+        if (errMsg == 'EMAIL_NOT_FOUND' || errMsg == 'INVALID_LOGIN_CREDENTIALS') {
+          try {
+            response = await _dio.post(
+              'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$_apiKey',
+              data: {
+                'email': email.trim(),
+                'password': password,
+                'returnSecureToken': true,
+              },
+            );
+          } catch (_) {
+            throw _mapDioError(e);
+          }
+        } else {
+          throw _mapDioError(e);
+        }
+      }
 
       final data = response.data;
       if (data is Map<String, dynamic>) {
         final session = AuthSessionModel.fromJson(data, fallbackEmail: email);
         if (session.access.isEmpty) {
-          throw const AuthFailure('Token akses tidak ditemukan dalam respon API.');
+          throw const AuthFailure('Token akses tidak ditemukan dalam respon REST API.');
         }
         return session;
       }
-      throw const ServerFailure('Format respon login tidak sesuai spesifikasi.');
+      throw const ServerFailure('Format respon REST API tidak sesuai spesifikasi.');
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
@@ -91,17 +114,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     try {
       final response = await _dio.post(
-        '$baseUrl/refresh',
-        data: {'refresh_token': refreshToken},
+        'https://securetoken.googleapis.com/v1/token?key=$_apiKey',
+        data: {
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
       );
 
       final data = response.data;
-      if (data is Map<String, dynamic> && data['data'] != null) {
-        final payload = data['data'] as Map<String, dynamic>;
-        final renewedAccess = payload['access_token'] as String?;
-        if (renewedAccess != null && renewedAccess.isNotEmpty) {
-          return renewedAccess;
-        }
+      if (data is Map<String, dynamic> && data['id_token'] != null) {
+        return data['id_token'] as String;
       }
       return 'token_access_renewed_${DateTime.now().millisecondsSinceEpoch}';
     } on DioException catch (e) {
@@ -111,21 +136,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> logout() async {
-    try {
-      await _dio.post('$baseUrl/logout');
-    } catch (_) {
-      // Abaikan kegagalan jaringan saat logout
-    }
+    // REST API bersifat stateless
   }
 
   @override
   Future<UserProfileModel> fetchProfile(String accessToken) async {
     try {
-      final response = await _dio.get(
-        '$baseUrl/me',
-        options: Options(
-          headers: {'Authorization': 'Bearer $accessToken'},
-        ),
+      final response = await _dio.post(
+        'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=$_apiKey',
+        data: {
+          'idToken': accessToken,
+        },
       );
       if (response.data is Map<String, dynamic>) {
         return UserProfileModel.fromJson(response.data as Map<String, dynamic>);
@@ -138,34 +159,47 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   Failure _mapDioError(DioException e) {
     if (e.response != null) {
-      final statusCode = e.response?.statusCode;
-      final body = e.response?.data;
-      if (body is Map<String, dynamic> && body['message'] != null) {
-        return AuthFailure(body['message'].toString());
+      final data = e.response?.data;
+      if (data is Map<String, dynamic> && data['error'] != null) {
+        final errObj = data['error'];
+        final msg = errObj is Map ? errObj['message'] : errObj.toString();
+        switch (msg) {
+          case 'CONFIGURATION_NOT_FOUND':
+            return const AuthFailure(
+              'Layanan Authentication belum diaktifkan di Firebase Console! Buka Firebase Console > Security > Authentication > klik "Get Started".',
+            );
+          case 'EMAIL_NOT_FOUND':
+          case 'INVALID_PASSWORD':
+          case 'INVALID_LOGIN_CREDENTIALS':
+            return const AuthFailure('Email atau kata sandi tidak valid.');
+          case 'USER_DISABLED':
+            return const AuthFailure('Akun pengguna ini telah dinonaktifkan.');
+          case 'WEAK_PASSWORD : Password should be at least 6 characters':
+            return const AuthFailure('Kata sandi minimal 6 karakter.');
+          case 'EMAIL_EXISTS':
+            return const AuthFailure('Email ini sudah terdaftar.');
+          case 'TOO_MANY_ATTEMPTS_TRY_LATER':
+            return const AuthFailure('Terlalu banyak percobaan gagal. Silakan coba lagi nanti.');
+          default:
+            return AuthFailure('Error REST API: $msg');
+        }
       }
-      if (statusCode == 401) {
-        return const AuthFailure('Email atau kata sandi tidak valid.');
-      }
-      if (statusCode == 422) {
-        return const AuthFailure('Validasi gagal: format email atau sandi tidak sesuai.');
-      }
-      return ServerFailure('Gagal memproses request (HTTP $statusCode).');
+      return ServerFailure('Gagal memproses request (HTTP ${e.response?.statusCode}).');
     }
 
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return NetworkFailure(
-          'Waktu koneksi habis (Timeout ke $baseUrl). Jika menggunakan HP fisik via USB, ubah URL ke http://127.0.0.1:8000/api.',
+        return const NetworkFailure(
+          'Waktu koneksi habis (Timeout ke Cloud REST API). Periksa koneksi internet Anda.',
         );
       case DioExceptionType.connectionError:
-        return NetworkFailure(
-          'Tidak dapat terhubung ke API di $baseUrl. Pastikan backend Laravel sedang berjalan (php artisan serve).',
+        return const NetworkFailure(
+          'Tidak dapat terhubung ke REST API Cloud. Pastikan HP terhubung ke internet.',
         );
       default:
         return NetworkFailure('Terjadi gangguan jaringan: ${e.message ?? 'Unknown error'}');
     }
   }
 }
-
