@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "645959434767",
+    "project_id": "mobile-authentication-security",
+    "storage_bucket": "mobile-authentication-security.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:645959434767:android:f68103f2ff638a418d997a",
+        "android_client_info": {
+          "package_name": "com.example.authentication_security_fcm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmc35C1Gm8yfCyHR9ABSrTb_1Yg9KhV0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
